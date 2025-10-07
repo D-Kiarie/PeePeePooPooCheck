@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.SECRET_KEY || "your-secret-key-here";
+const SECRET_KEY = process.env.SECRET_KEY || "your-secret-key-here"; 
 
 let gearStock = {};
 let timeUntilRestock;
@@ -72,13 +72,18 @@ function performRestock() {
 const authMiddleware = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
     if (apiKey && apiKey === SECRET_KEY) {
-        next();
-    } else {
-        res.status(401).send('Unauthorized');
+        return next();
     }
+    res.status(401).send('Unauthorized: Missing or incorrect API key.');
 };
 
-app.get('/stock', authMiddleware, (req, res) => {
+app.get('/health', (req, res) => {
+    res.status(200).send('Server is healthy and running.');
+});
+
+app.use(authMiddleware);
+
+app.get('/stock', (req, res) => {
     res.status(200).json({
         gearStock,
         timeUntilRestock,
@@ -86,7 +91,7 @@ app.get('/stock', authMiddleware, (req, res) => {
     });
 });
 
-app.post('/force-restock', authMiddleware, (req, res) => {
+app.post('/force-restock', (req, res) => {
     performRestock();
     res.status(200).json({
         message: "Restock forced successfully.",
@@ -95,40 +100,40 @@ app.post('/force-restock', authMiddleware, (req, res) => {
     });
 });
 
-app.post('/set-timer', authMiddleware, (req, res) => {
+app.post('/set-timer', (req, res) => {
     const { newInterval } = req.body;
     if (typeof newInterval === 'number' && newInterval > 0) {
         restockInterval = newInterval;
         timeUntilRestock = newInterval;
+        console.log(`Restock interval updated to ${newInterval} seconds.`);
         res.status(200).send(`Restock interval updated to ${newInterval} seconds.`);
     } else {
-        res.status(400).send('Invalid interval provided.');
+        res.status(400).send('Invalid interval provided. It must be a positive number.');
     }
 });
 
-
-app.get('/listen-for-restock', authMiddleware, (req, res) => {
+app.get('/listen-for-restock', (req, res) => {
     const clientRestockId = req.query.currentId;
     if (clientRestockId !== lastRestockId && lastRestockId !== null) {
         res.status(200).json({ restockId: lastRestockId });
     } else {
         longPollResponses.push(res);
+        req.on('close', () => {
+            longPollResponses = longPollResponses.filter(response => response !== res);
+        });
     }
-});
-
-
-app.get('/health', (req, res) => {
-    res.status(200).send('Server is up and running.');
 });
 
 app.listen(PORT, () => {
     performRestock();
+    
     setInterval(() => {
         timeUntilRestock--;
         if (timeUntilRestock <= 0) {
             performRestock();
         }
     }, 1000);
-    console.log(`Server listening on port ${PORT}`);
+
+    console.log(`Server started successfully on port ${PORT}.`);
 });
 
