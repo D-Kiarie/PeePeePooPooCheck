@@ -28,6 +28,19 @@ const GEAR_DATA = [
 	{ Name: "Brainrot Swapper 6000", Rarity: "Legendary", StockChance: 0.1, StockQuantity: {Min: 1, Max: 1} }
 ];
 
+function notifyLongPollers() {
+    longPollResponses.forEach(res => {
+        try {
+            if (!res.headersSent) {
+                res.status(200).json({ restockId: lastRestockId });
+            }
+        } catch (error) {
+            console.error("Error responding to a long poll request:", error);
+        }
+    });
+    longPollResponses = [];
+}
+
 function performRestock() {
     console.log("Performing a global restock...");
     const newStock = {};
@@ -42,17 +55,7 @@ function performRestock() {
     timeUntilRestock = restockInterval;
     lastRestockId = uuidv4();
     console.log(`New restock performed. ID: ${lastRestockId}`);
-
-    longPollResponses.forEach(res => {
-        try {
-            if (!res.headersSent) {
-                res.status(200).json({ restockId: lastRestockId });
-            }
-        } catch (error) {
-            console.error("Error responding to a long poll request:", error);
-        }
-    });
-    longPollResponses = [];
+    notifyLongPollers();
 }
 
 const authMiddleware = (req, res, next) => {
@@ -87,7 +90,6 @@ app.post('/force-restock', (req, res) => {
     });
 });
 
-// New endpoint to set stock for a specific item
 app.post('/set-stock', (req, res) => {
     const { gearName, amount } = req.body;
 
@@ -102,6 +104,10 @@ app.post('/set-stock', (req, res) => {
 
     console.log(`Admin action: Setting stock for "${gearName}" to ${amount}`);
     gearStock[gearName] = amount;
+    
+    timeUntilRestock = restockInterval;
+    lastRestockId = uuidv4();
+    notifyLongPollers();
     
     res.status(200).json({ success: true, message: `Stock for ${gearName} set to ${amount}.` });
 });
