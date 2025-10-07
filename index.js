@@ -6,23 +6,17 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- Configuration ---
 const PORT = process.env.PORT || 10000;
 const SECRET_KEY = process.env.SECRET_KEY;
 
-// --- Critical Startup Check ---
 if (!SECRET_KEY) {
     console.error("FATAL ERROR: The SECRET_KEY environment variable is not set on Render.");
-    console.error("Please go to your service's 'Environment' tab and set this value.");
     process.exit(1);
 }
 
-console.log("SECRET_KEY loaded successfully.");
-
-// --- In-Memory State ---
 let gearStock = {};
 let timeUntilRestock;
-let restockInterval = 60 * 5; // 5 minutes
+let restockInterval = 60 * 5; 
 let lastRestockId = null;
 let longPollResponses = [];
 
@@ -34,7 +28,6 @@ const GEAR_DATA = [
 	{ Name: "Brainrot Swapper 6000", Rarity: "Legendary", StockChance: 0.1, StockQuantity: {Min: 1, Max: 1} }
 ];
 
-// --- Core Logic ---
 function performRestock() {
     console.log("Performing a global restock...");
     const newStock = {};
@@ -62,7 +55,6 @@ function performRestock() {
     longPollResponses = [];
 }
 
-// --- Middleware ---
 const authMiddleware = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
     if (apiKey && apiKey === SECRET_KEY) {
@@ -71,7 +63,6 @@ const authMiddleware = (req, res, next) => {
     res.status(401).send('Unauthorized: Missing or incorrect API key.');
 };
 
-// --- API Routes ---
 app.get('/health', (req, res) => {
     res.status(200).send('Server is healthy and running.');
 });
@@ -91,7 +82,8 @@ app.post('/force-restock', (req, res) => {
     res.status(200).json({
         message: "Restock forced successfully.",
         restockId: lastRestockId,
-        gearStock
+        gearStock,
+        timeUntilRestock: timeUntilRestock
     });
 });
 
@@ -119,27 +111,22 @@ app.get('/listen-for-restock', (req, res) => {
     }
 });
 
-// --- Server Initialization ---
 try {
-    performRestock(); // Initial stock generation
-
+    performRestock();
     setInterval(() => {
         if (typeof timeUntilRestock === 'number') {
             timeUntilRestock--;
-        } else {
-            timeUntilRestock = restockInterval; // Failsafe
         }
-        
         if (timeUntilRestock <= 0) {
             performRestock();
         }
     }, 1000);
 
     app.listen(PORT, () => {
-        console.log(`Server started successfully on port ${PORT}. Ready for connections.`);
+        console.log(`Server started successfully on port ${PORT}.`);
     });
 } catch (error) {
-    console.error("A critical error occurred during server startup:", error);
+    console.error("An error occurred during server startup:", error);
     process.exit(1);
 }
 
