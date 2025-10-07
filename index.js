@@ -6,48 +6,35 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
-const SECRET_KEY = process.env.SECRET_KEY || "your-secret-key-here"; 
+// --- Configuration ---
+const PORT = process.env.PORT || 10000;
+const SECRET_KEY = process.env.SECRET_KEY;
 
+// --- Critical Startup Check ---
+if (!SECRET_KEY) {
+    console.error("FATAL ERROR: The SECRET_KEY environment variable is not set on Render.");
+    console.error("Please go to your service's 'Environment' tab and set this value.");
+    process.exit(1);
+}
+
+console.log("SECRET_KEY loaded successfully.");
+
+// --- In-Memory State ---
 let gearStock = {};
 let timeUntilRestock;
-let restockInterval = 60 * 5; 
+let restockInterval = 60 * 5; // 5 minutes
 let lastRestockId = null;
 let longPollResponses = [];
 
 const GEAR_DATA = [
-	{
-		Name: "Smart Remote",
-		Rarity: "Common",
-		StockChance: 0.9,
-		StockQuantity: {Min: 8, Max: 12}
-	},
-	{
-		Name: "Slap hand",
-		Rarity: "Rare",
-		StockChance: 0.7,
-		StockQuantity: {Min: 3, Max: 6}
-	},
-	{
-		Name: "Jade Clover",
-		Rarity: "Rare",
-		StockChance: 0.6,
-		StockQuantity: {Min: 2, Max: 5}
-	},
-	{
-		Name: "Advanced Remote",
-		Rarity: "Epic",
-		StockChance: 0.4,
-		StockQuantity: {Min: 1, Max: 3}
-	},
-	{
-		Name: "Brainrot Swapper 6000",
-		Rarity: "Legendary",
-		StockChance: 0.1,
-		StockQuantity: {Min: 1, Max: 1}
-	}
+	{ Name: "Smart Remote", Rarity: "Common", StockChance: 0.9, StockQuantity: {Min: 8, Max: 12} },
+	{ Name: "Slap hand", Rarity: "Rare", StockChance: 0.7, StockQuantity: {Min: 3, Max: 6} },
+	{ Name: "Jade Clover", Rarity: "Rare", StockChance: 0.6, StockQuantity: {Min: 2, Max: 5} },
+	{ Name: "Advanced Remote", Rarity: "Epic", StockChance: 0.4, StockQuantity: {Min: 1, Max: 3} },
+	{ Name: "Brainrot Swapper 6000", Rarity: "Legendary", StockChance: 0.1, StockQuantity: {Min: 1, Max: 1} }
 ];
 
+// --- Core Logic ---
 function performRestock() {
     console.log("Performing a global restock...");
     const newStock = {};
@@ -61,14 +48,21 @@ function performRestock() {
     gearStock = newStock;
     timeUntilRestock = restockInterval;
     lastRestockId = uuidv4();
-    console.log(`New restock ID: ${lastRestockId}`);
+    console.log(`New restock performed. ID: ${lastRestockId}`);
 
     longPollResponses.forEach(res => {
-        res.status(200).json({ restockId: lastRestockId });
+        try {
+            if (!res.headersSent) {
+                res.status(200).json({ restockId: lastRestockId });
+            }
+        } catch (error) {
+            console.error("Error responding to a long poll request:", error);
+        }
     });
     longPollResponses = [];
 }
 
+// --- Middleware ---
 const authMiddleware = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
     if (apiKey && apiKey === SECRET_KEY) {
@@ -77,6 +71,7 @@ const authMiddleware = (req, res, next) => {
     res.status(401).send('Unauthorized: Missing or incorrect API key.');
 };
 
+// --- API Routes ---
 app.get('/health', (req, res) => {
     res.status(200).send('Server is healthy and running.');
 });
@@ -124,16 +119,27 @@ app.get('/listen-for-restock', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    performRestock();
-    
+// --- Server Initialization ---
+try {
+    performRestock(); // Initial stock generation
+
     setInterval(() => {
-        timeUntilRestock--;
+        if (typeof timeUntilRestock === 'number') {
+            timeUntilRestock--;
+        } else {
+            timeUntilRestock = restockInterval; // Failsafe
+        }
+        
         if (timeUntilRestock <= 0) {
             performRestock();
         }
     }, 1000);
 
-    console.log(`Server started successfully on port ${PORT}.`);
-});
+    app.listen(PORT, () => {
+        console.log(`Server started successfully on port ${PORT}. Ready for connections.`);
+    });
+} catch (error) {
+    console.error("A critical error occurred during server startup:", error);
+    process.exit(1);
+}
 
