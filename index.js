@@ -70,8 +70,6 @@ app.get('/health', (req, res) => {
     res.status(200).send('Server is healthy and running.');
 });
 
-app.use(authMiddleware);
-
 app.get('/stock', (req, res) => {
     res.status(200).json({
         gearStock,
@@ -79,6 +77,8 @@ app.get('/stock', (req, res) => {
         restockId: lastRestockId
     });
 });
+
+app.use(authMiddleware);
 
 app.post('/force-restock', (req, res) => {
     performRestock();
@@ -155,3 +155,4 @@ try {
     console.error("An error occurred during server startup:", error);
     process.exit(1);
 }
+
