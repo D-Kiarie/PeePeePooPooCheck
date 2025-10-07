@@ -87,6 +87,26 @@ app.post('/force-restock', (req, res) => {
     });
 });
 
+// New endpoint to set stock for a specific item
+app.post('/set-stock', (req, res) => {
+    const { gearName, amount } = req.body;
+
+    if (typeof gearName !== 'string' || typeof amount !== 'number' || amount < 0) {
+        return res.status(400).send('Invalid request body. Expected { gearName: string, amount: number }.');
+    }
+
+    const itemExists = GEAR_DATA.some(item => item.Name === gearName);
+    if (!itemExists) {
+        return res.status(404).send('Gear item not found.');
+    }
+
+    console.log(`Admin action: Setting stock for "${gearName}" to ${amount}`);
+    gearStock[gearName] = amount;
+    
+    res.status(200).json({ success: true, message: `Stock for ${gearName} set to ${amount}.` });
+});
+
+
 app.post('/set-timer', (req, res) => {
     const { newInterval } = req.body;
     if (typeof newInterval === 'number' && newInterval > 0) {
@@ -129,4 +149,3 @@ try {
     console.error("An error occurred during server startup:", error);
     process.exit(1);
 }
-
