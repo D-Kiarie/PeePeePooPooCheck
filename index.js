@@ -10,29 +10,43 @@ const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.SECRET_KEY || "your-secret-key-here";
 
 let gearStock = {};
-let gearMaxStock = {};
 let timeUntilRestock;
 let restockInterval = 60 * 5; 
 let lastRestockId = null;
 let longPollResponses = [];
 
 const GEAR_DATA = [
-    // This should mirror your Roblox GearData module
-    { Name: "Sword", Rarity: "Common", StockChance: 0.8, StockQuantity: { Min: 10, Max: 20 }, MoneyPrice: 50 },
-    { Name: "Staff", Rarity: "Rare", StockChance: 0.6, StockQuantity: { Min: 5, Max: 10 }, MoneyPrice: 150 },
-    { Name: "Bow", Rarity: "Epic", StockChance: 0.4, StockQuantity: { Min: 2, Max: 5 }, MoneyPrice: 500 },
-    { Name: "Scythe", Rarity: "Legendary", StockChance: 0.2, StockQuantity: { Min: 1, Max: 2 }, MoneyPrice: 2000 },
-    { Name: "Void Blade", Rarity: "Mythic", StockChance: 0.05, StockQuantity: { Min: 1, Max: 1 }, MoneyPrice: 10000 },
+	{
+		Name: "Smart Remote",
+		Rarity: "Common",
+		StockChance: 0.9,
+		StockQuantity: {Min: 8, Max: 12}
+	},
+	{
+		Name: "Slap hand",
+		Rarity: "Rare",
+		StockChance: 0.7,
+		StockQuantity: {Min: 3, Max: 6}
+	},
+	{
+		Name: "Jade Clover",
+		Rarity: "Rare",
+		StockChance: 0.6,
+		StockQuantity: {Min: 2, Max: 5}
+	},
+	{
+		Name: "Advanced Remote",
+		Rarity: "Epic",
+		StockChance: 0.4,
+		StockQuantity: {Min: 1, Max: 3}
+	},
+	{
+		Name: "Brainrot Swapper 6000",
+		Rarity: "Legendary",
+		StockChance: 0.1,
+		StockQuantity: {Min: 1, Max: 1}
+	}
 ];
-
-const MAX_STOCK_MULTIPLIER = 2;
-
-function initializeStock() {
-    GEAR_DATA.forEach(data => {
-        const maxPossibleStock = data.StockQuantity.Max;
-        gearMaxStock[data.Name] = maxPossibleStock * MAX_STOCK_MULTIPLIER;
-    });
-}
 
 function performRestock() {
     console.log("Performing a global restock...");
@@ -108,7 +122,6 @@ app.get('/health', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    initializeStock();
     performRestock();
     setInterval(() => {
         timeUntilRestock--;
@@ -118,3 +131,4 @@ app.listen(PORT, () => {
     }, 1000);
     console.log(`Server listening on port ${PORT}`);
 });
+
