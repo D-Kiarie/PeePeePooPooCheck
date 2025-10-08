@@ -21,9 +21,9 @@ let lastRestockId = null;
 let longPollResponses = [];
 
 const GEAR_DATA = [
-	{ Name: "Smart Remote", Rarity: "Common", StockChance: 0.9, StockQuantity: {Min: 8, Max: 12} },
-	{ Name: "Slap hand", Rarity: "Rare", StockChance: 0.7, StockQuantity: {Min: 3, Max: 6} },
-	{ Name: "Jade Clover", Rarity: "Rare", StockChance: 0.6, StockQuantity: {Min: 2, Max: 5} },
+	{ Name: "Smart Remote", Rarity: "Common", StockChance: 0.9, StockQuantity: {Min: 1, Max: 3} },
+	{ Name: "Slap hand", Rarity: "Rare", StockChance: 0.7, StockQuantity: {Min: 2, Max: 4} },
+	{ Name: "Jade Clover", Rarity: "Rare", StockChance: 0.6, StockQuantity: {Min: 2, Max: 3} },
 	{ Name: "Advanced Remote", Rarity: "Epic", StockChance: 0.4, StockQuantity: {Min: 1, Max: 3} },
 	{ Name: "Brainrot Swapper 6000", Rarity: "Legendary", StockChance: 0.1, StockQuantity: {Min: 1, Max: 1} }
 ];
